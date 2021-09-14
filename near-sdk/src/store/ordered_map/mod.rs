@@ -13,6 +13,8 @@ use crate::utils::{EntryState, StableMap};
 use crate::{env, CacheEntry, IntoStorageKey};
 pub use entry::{Entry, OccupiedEntry, VacantEntry};
 
+use super::{LookupMap, Vector};
+
 const ERR_ELEMENT_DESERIALIZATION: &str = "Cannot deserialize element";
 const ERR_ELEMENT_SERIALIZATION: &str = "Cannot serialize element";
 const ERR_NOT_EXIST: &str = "Key does not exist in map";
@@ -75,35 +77,31 @@ type LookupKey = [u8; 32];
 ///
 /// [`new_with_hasher`]: Self::new_with_hasher
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct LookupMap<K, V, H = Sha256>
+pub struct OrderedMap<K, V, H = Sha256>
 where
     K: BorshSerialize + Ord,
     V: BorshSerialize,
     H: CryptoHasher<Digest = [u8; 32]>,
 {
-    prefix: Box<[u8]>,
-    #[borsh_skip]
-    /// Cache for loads and intermediate changes to the underlying vector.
-    /// The cached entries are wrapped in a [`Box`] to avoid existing pointers from being
-    /// invalidated.
-    cache: StableMap<K, OnceCell<CacheEntry<V>>>,
-
-    #[borsh_skip]
-    hasher: PhantomData<H>,
+    keys: Vector<K>,
+    values: LookupMap<K, V, H>,
 }
 
-impl<K, V, H> fmt::Debug for LookupMap<K, V, H>
+impl<K, V, H> fmt::Debug for OrderedMap<K, V, H>
 where
-    K: BorshSerialize + Ord,
+    K: BorshSerialize + BorshDeserialize + Ord + fmt::Debug,
     V: BorshSerialize,
     H: CryptoHasher<Digest = [u8; 32]>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("LookupMap").field("prefix", &self.prefix).finish()
+        f.debug_struct("OrderedMap")
+            .field("keys", &self.keys)
+            .field("values", &self.values)
+            .finish()
     }
 }
 
-impl<K, V> LookupMap<K, V, Sha256>
+impl<K, V> OrderedMap<K, V, Sha256>
 where
     K: BorshSerialize + Ord,
     V: BorshSerialize,
@@ -117,7 +115,7 @@ where
     }
 }
 
-impl<K, V, H> LookupMap<K, V, H>
+impl<K, V, H> OrderedMap<K, V, H>
 where
     K: BorshSerialize + Ord,
     V: BorshSerialize,
@@ -136,27 +134,11 @@ where
     where
         S: IntoStorageKey,
     {
-        Self {
-            prefix: prefix.into_storage_key().into_boxed_slice(),
-            cache: Default::default(),
-            hasher: Default::default(),
-        }
-    }
-
-    /// Overwrites the current value for the given key.
-    ///
-    /// This function will not load the existing value from storage and return the value in storage.
-    /// Use [`LookupMap::insert`] if you need the previous value.
-    ///
-    /// Calling `set` with a `None` value will delete the entry from storage.
-    pub fn set(&mut self, key: K, value: Option<V>) {
-        let entry = self.cache.get_mut(key);
-        match entry.get_mut() {
-            Some(entry) => *entry.value_mut() = value,
-            None => {
-                let _ = entry.set(CacheEntry::new_modified(value));
-            }
-        }
+        let mut prefix = prefix.into_storage_key();
+        let mut keys_prefix = prefix.clone();
+        keys_prefix.push(b'k');
+        prefix.push(b'v');
+        Self { keys: Vector::new(keys_prefix), values: LookupMap::new_with_hasher(prefix) }
     }
 
     fn lookup_key<Q: ?Sized>(prefix: &[u8], key: &Q) -> LookupKey
@@ -172,7 +154,7 @@ where
     }
 }
 
-impl<K, V, H> LookupMap<K, V, H>
+impl<K, V, H> OrderedMap<K, V, H>
 where
     K: BorshSerialize + Ord,
     V: BorshSerialize + BorshDeserialize,
@@ -201,26 +183,21 @@ where
         K: Borrow<Q>,
         Q: BorshSerialize + ToOwned<Owned = K>,
     {
-        //* ToOwned bound, which forces a clone, is required to be able to keep the key in the cache
-        let entry = self
-            .cache
-            .get(k.to_owned())
-            .get_or_init(|| CacheEntry::new_cached(Self::load_element(&self.prefix, k)));
-        entry.value().as_ref()
+        self.values.get(k)
     }
 
-    pub(crate) fn get_mut_inner<Q: ?Sized>(&mut self, k: &Q) -> &mut CacheEntry<V>
-    where
-        K: Borrow<Q>,
-        Q: BorshSerialize + ToOwned<Owned = K>,
-    {
-        let prefix = &self.prefix;
-        //* ToOwned bound, which forces a clone, is required to be able to keep the key in the cache
-        let entry = self.cache.get_mut(k.to_owned());
-        entry.get_or_init(|| CacheEntry::new_cached(Self::load_element(prefix, k)));
-        let entry = entry.get_mut().unwrap_or_else(|| unreachable!());
-        entry
-    }
+    // fn get_mut_inner<Q: ?Sized>(&mut self, k: &Q) -> &mut CacheEntry<V>
+    // where
+    //     K: Borrow<Q>,
+    //     Q: BorshSerialize + ToOwned<Owned = K>,
+    // {
+    //     let prefix = &self.prefix;
+    //     //* ToOwned bound, which forces a clone, is required to be able to keep the key in the cache
+    //     let entry = self.cache.get_mut(k.to_owned());
+    //     entry.get_or_init(|| CacheEntry::new_cached(Self::load_element(prefix, k)));
+    //     let entry = entry.get_mut().unwrap_or_else(|| unreachable!());
+    //     entry
+    // }
 
     /// Returns a mutable reference to the value corresponding to the key.
     ///
@@ -232,7 +209,7 @@ where
         K: Borrow<Q>,
         Q: BorshSerialize + ToOwned<Owned = K>,
     {
-        self.get_mut_inner(k).value_mut().as_mut()
+        self.values.get_mut(k)
     }
 
     /// Inserts a key-value pair into the map.
@@ -246,7 +223,8 @@ where
     where
         K: Clone,
     {
-        self.get_mut_inner(&k).replace(Some(v))
+        self.values.get_mut_inner(k)
+        // self.get_mut_inner(&k).replace(Some(v))
     }
 
     /// Returns `true` if the map contains a value for the specified key.
@@ -322,7 +300,7 @@ where
     }
 }
 
-impl<K, V, H> LookupMap<K, V, H>
+impl<K, V, H> OrderedMap<K, V, H>
 where
     K: BorshSerialize + Ord,
     V: BorshSerialize,
@@ -362,7 +340,7 @@ where
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod tests {
-    use super::LookupMap;
+    use super::OrderedMap;
     use crate::env;
     use crate::hash::Keccak256;
     use rand::seq::SliceRandom;
@@ -371,7 +349,7 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(0);
         for _ in 0..500 {
             let key = rng.gen::<u64>();
@@ -382,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_insert_has_key() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(0);
         let mut key_to_value = HashMap::new();
         for _ in 0..100 {
@@ -404,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_insert_remove() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(1);
         let mut keys = vec![];
         let mut key_to_value = HashMap::new();
@@ -424,7 +402,7 @@ mod tests {
 
     #[test]
     fn test_remove_last_reinsert() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let key1 = 1u64;
         let value1 = 2u64;
         map.insert(key1, value1);
@@ -441,7 +419,7 @@ mod tests {
 
     #[test]
     fn test_insert_override_remove() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(2);
         let mut keys = vec![];
         let mut key_to_value = HashMap::new();
@@ -468,7 +446,7 @@ mod tests {
 
     #[test]
     fn test_get_non_existent() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(3);
         let mut key_to_value = HashMap::new();
         for _ in 0..500 {
@@ -485,7 +463,7 @@ mod tests {
 
     #[test]
     fn test_extend() {
-        let mut map = LookupMap::new(b"m");
+        let mut map = OrderedMap::new(b"m");
         let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(4);
         let mut key_to_value = HashMap::new();
         for _ in 0..100 {
@@ -512,7 +490,7 @@ mod tests {
 
     #[test]
     fn flush_on_drop() {
-        let mut map = LookupMap::<_, _, Keccak256>::new_with_hasher(b"m");
+        let mut map = OrderedMap::<_, _, Keccak256>::new_with_hasher(b"m");
 
         // Set a value, which does not write to storage yet
         map.set(5u8, Some(8u8));
@@ -520,12 +498,12 @@ mod tests {
         // Create duplicate which references same data
         assert_eq!(map[&5], 8);
 
-        let storage_key = LookupMap::<u8, u8, Keccak256>::lookup_key(b"m", &5);
+        let storage_key = OrderedMap::<u8, u8, Keccak256>::lookup_key(b"m", &5);
         assert!(!env::storage_has_key(&storage_key));
 
         drop(map);
 
-        let dup_map = LookupMap::<u8, u8, Keccak256>::new_with_hasher(b"m");
+        let dup_map = OrderedMap::<u8, u8, Keccak256>::new_with_hasher(b"m");
 
         // New map can now load the value
         assert_eq!(dup_map[&5], 8);
