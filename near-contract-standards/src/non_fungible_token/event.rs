@@ -1,16 +1,21 @@
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
+use near_sdk::{
+    serde::{Deserialize, Serialize},
+    serde_json,
+};
 use serde_with::skip_serializing_none;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "standard")]
 #[serde(rename_all = "snake_case")]
+#[serde(crate = "near_sdk::serde")]
 pub enum NearEvent {
     Nep171(Nep171Event),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
 pub struct Nep171Event {
     pub version: String,
     #[serde(flatten)]
@@ -21,6 +26,7 @@ pub struct Nep171Event {
 #[serde(tag = "event", content = "data")]
 #[serde(rename_all = "snake_case")]
 #[allow(clippy::enum_variant_names)]
+#[serde(crate = "near_sdk::serde")]
 pub enum Nep171EventKind {
     NftMint(Vec<NftMintData>),
     NftTransfer(Vec<NftTransferData>),
@@ -29,6 +35,7 @@ pub enum Nep171EventKind {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
 pub struct NftMintData {
     pub owner_id: String,
     pub token_ids: Vec<String>,
@@ -37,6 +44,7 @@ pub struct NftMintData {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
 pub struct NftTransferData {
     pub authorized_id: Option<String>,
     pub old_owner_id: String,
@@ -47,6 +55,7 @@ pub struct NftTransferData {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
 pub struct NftBurnData {
     pub authorized_id: Option<String>,
     pub owner_id: String,
@@ -123,6 +132,7 @@ impl NearEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use near_sdk::serde_json;
 
     #[test]
     fn nft_mint() {

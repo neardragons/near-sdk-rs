@@ -5,6 +5,7 @@ use crate::non_fungible_token::token::{Token, TokenId};
 use crate::non_fungible_token::utils::{
     hash_account_id, refund_approved_account_ids, refund_deposit_to_account,
 };
+use crate::non_fungible_token::NearEvent;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet};
 use near_sdk::json_types::Base64VecU8;
@@ -244,7 +245,7 @@ impl NonFungibleToken {
             self.approvals_by_id.as_mut().and_then(|by_id| by_id.remove(token_id));
 
         // check if authorized
-        if sender_id != &owner_id {
+        let authorized_id = if sender_id != &owner_id {
             // if approval extension is NOT being used, or if token has no approved accounts
             let app_acc_ids =
                 approved_account_ids.as_ref().unwrap_or_else(|| env::panic_str("Unauthorized"));
@@ -265,16 +266,22 @@ impl NonFungibleToken {
                     actual_approval_id, approval_id
                 )
             );
-        }
+            actual_approval_id.map(|id| id.to_string())
+        } else {
+            None
+        };
 
         require!(&owner_id != receiver_id, "Current and next owner must differ");
 
         self.internal_transfer_unguarded(token_id, &owner_id, receiver_id);
 
-        log!("Transfer {} from {} to {}", token_id, sender_id, receiver_id);
-        if let Some(memo) = memo {
-            log!("Memo: {}", memo);
-        }
+        NearEvent::log_nft_transfer(
+            owner_id.to_string(),
+            receiver_id.to_string(),
+            vec![token_id.to_string()],
+            memo,
+            authorized_id,
+        );
 
         // return previous owner & approvals
         (owner_id, approved_account_ids)
