@@ -14,7 +14,7 @@ pub mod unordered_map;
 pub use self::unordered_map::UnorderedMap;
 
 mod index_map;
-pub(crate) use self::index_map::IndexMap;
+pub use self::index_map::IndexMap;
 
 pub(crate) mod free_list;
 pub(crate) use self::free_list::FreeList;
