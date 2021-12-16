@@ -266,7 +266,7 @@ impl NonFungibleToken {
                     actual_approval_id, approval_id
                 )
             );
-            actual_approval_id.map(|id| id.to_string())
+            Some(sender_id.to_string())
         } else {
             None
         };
