@@ -1,4 +1,5 @@
 use super::resolver::NonFungibleTokenResolver;
+use crate::event::{NearEvent, NftMintData, NftTransferData};
 use crate::non_fungible_token::core::NonFungibleTokenCore;
 use crate::non_fungible_token::metadata::TokenMetadata;
 use crate::non_fungible_token::token::{Token, TokenId};
@@ -245,7 +246,7 @@ impl NonFungibleToken {
             self.approvals_by_id.as_mut().and_then(|by_id| by_id.remove(token_id));
 
         // check if authorized
-        let authorized_id = if sender_id != &owner_id {
+        let sender_id = if sender_id != &owner_id {
             // if approval extension is NOT being used, or if token has no approved accounts
             let app_acc_ids =
                 approved_account_ids.as_ref().unwrap_or_else(|| env::panic_str("Unauthorized"));
@@ -266,7 +267,7 @@ impl NonFungibleToken {
                     actual_approval_id, approval_id
                 )
             );
-            Some(sender_id.to_string())
+            Some(sender_id)
         } else {
             None
         };
@@ -275,13 +276,14 @@ impl NonFungibleToken {
 
         self.internal_transfer_unguarded(token_id, &owner_id, receiver_id);
 
-        NearEvent::log_nft_transfer(
-            owner_id.to_string(),
-            receiver_id.to_string(),
-            vec![token_id.to_string()],
+        NearEvent::nft_transfer(vec![NftTransferData::new(
+            &owner_id,
+            receiver_id,
+            vec![token_id],
+            sender_id,
             memo,
-            authorized_id,
-        );
+        )])
+        .emit();
 
         // return previous owner & approvals
         (owner_id, approved_account_ids)
@@ -312,23 +314,28 @@ impl NonFungibleToken {
 
     /// Mint a new token without checking:
     /// * Whether the caller id is equal to the `owner_id`
-    /// * `refund_id` will transfer the left over balance after storage costs are calculated to the provided account.
-    ///   Typically the account will be the owner. If `None`, will not refund. This is useful for delaying refunding
-    ///   until multiple tokens have been minted.
-    /// * Assumes there will be a refund to the owner after covering the storage costs
+    /// * Assumes there will be a refund to the predecessor after covering the storage costs
     ///
+    /// Returns the newly minted token and emits the mint event
     pub fn internal_mint(
         &mut self,
         token_id: TokenId,
         token_owner_id: AccountId,
         token_metadata: Option<TokenMetadata>,
     ) -> Token {
-        self.internal_mint_with_refund(
+        let token = self.internal_mint_with_refund(
             token_id,
             token_owner_id,
             token_metadata,
-            Some(self.owner_id.clone()),
-        )
+            Some(env::predecessor_account_id()),
+        );
+        NearEvent::nft_mint(vec![NftMintData::new(
+            &token.owner_id,
+            vec![&token.token_id],
+            None as Option<&str>,
+        )])
+        .emit();
+        token
     }
 
     /// Mint a new token without checking:
@@ -337,6 +344,7 @@ impl NonFungibleToken {
     ///   Typically the account will be the owner. If `None`, will not refund. This is useful for delaying refunding
     ///   until multiple tokens have been minted.
     ///
+    /// Returns the newly minted token and does not emit the mint event
     pub fn internal_mint_with_refund(
         &mut self,
         token_id: TokenId,
@@ -384,6 +392,7 @@ impl NonFungibleToken {
         if let Some((id, storage_usage)) = initial_storage_usage {
             refund_deposit_to_account(env::storage_usage() - storage_usage, id)
         }
+
         // Return any extra attached deposit not used for storage
 
         Token { token_id, owner_id, metadata: token_metadata, approved_account_ids }
