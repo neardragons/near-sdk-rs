@@ -72,3 +72,5 @@ pub use serde;
 
 #[doc(hidden)]
 pub use serde_json;
+
+pub use witgen::witgen;

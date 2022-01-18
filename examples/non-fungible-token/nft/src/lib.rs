@@ -44,6 +44,12 @@ enum StorageKey {
     Approval,
 }
 
+#[near_sdk::witgen]
+pub struct InitArgs {
+  owner_id: String,
+  metadata: NFTContractMetadata
+}
+
 #[near_bindgen]
 impl Contract {
     /// Initializes the contract owned by `owner_id` with

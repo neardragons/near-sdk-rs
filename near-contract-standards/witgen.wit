@@ -1,0 +1,32 @@
+// This is a generated file by witgen (https://github.com/bnjjj/witgen), please do not edit yourself, you can generate a new one thanks to cargo witgen generate command
+
+///  Metadata on the individual token level.
+record token-metadata {
+    title: option <string>,
+	description: option <string>,
+	media: option <string>,
+	media-hash: option <base64-vec-u8>,
+	copies: option <u64>,
+	issued-at: option <string>,
+	expires-at: option <string>,
+	starts-at: option <string>,
+	updated-at: option <string>,
+	extra: option <string>,
+	reference: option <string>,
+	reference-hash: option <base64-vec-u8>
+}
+
+///  Helper class to serialize/deserialize `Vec<u8>` to base64 string.
+type base64-vec-u8 = tuple<list <u8>>
+
+///  Metadata for the NFT contract itself.
+record nft-contract-metadata {
+    spec: string,
+	name: string,
+	symbol: string,
+	icon: option <string>,
+	base-uri: option <string>,
+	reference: option <string>,
+	reference-hash: option <base64-vec-u8>
+}
+
