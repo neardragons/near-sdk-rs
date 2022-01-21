@@ -73,4 +73,5 @@ pub use serde;
 #[doc(hidden)]
 pub use serde_json;
 
+// #[cfg(not(target_arch = "wasm32"))]
 pub use witgen::witgen;

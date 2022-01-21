@@ -33,6 +33,7 @@ use crate::env::is_valid_account_id;
 /// ```
 ///
 /// [`FromStr`]: std::str::FromStr
+#[crate::witgen]
 #[derive(
     Debug, Clone, PartialEq, PartialOrd, Ord, Eq, BorshSerialize, Serialize, Hash, BorshSchema,
 )]
