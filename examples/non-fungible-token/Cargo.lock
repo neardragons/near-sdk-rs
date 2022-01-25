@@ -1620,7 +1620,7 @@ dependencies = [
 
 [[package]]
 name = "near-contract-standards"
-version = "4.0.0-pre.5"
+version = "4.0.0-pre.6"
 dependencies = [
  "near-sdk",
  "serde",
@@ -1896,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "near-sdk"
-version = "4.0.0-pre.5"
+version = "4.0.0-pre.6"
 dependencies = [
  "base64 0.13.0",
  "borsh 0.9.1",
@@ -1913,7 +1913,7 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-macros"
-version = "4.0.0-pre.5"
+version = "4.0.0-pre.6"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -1923,7 +1923,7 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-sim"
-version = "4.0.0-pre.5"
+version = "4.0.0-pre.6"
 dependencies = [
  "funty",
  "lazy-static-include",
@@ -2963,9 +2963,9 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 
 [[package]]
 name = "syn"
-version = "1.0.85"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a684ac3dcd8913827e18cd09a68384ee66c1de24157e3c556c9ab16d85695fb7"
+checksum = "6498a9efc342871f91cc2d0d694c674368b4ceb40f62b65a7a08c3792935e702"
 dependencies = [
  "proc-macro2",
  "quote",
