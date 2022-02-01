@@ -4,6 +4,11 @@ use std::convert::TryFrom;
 use std::fmt;
 
 use crate::env::is_valid_account_id;
+#[allow(dead_code)]
+mod a {
+  #[crate::witgen]
+  type AccountId = String;
+}
 
 /// Account identifier. This is the human readable utf8 string which is used internally to index
 /// accounts on the network and their respective state.
@@ -33,7 +38,6 @@ use crate::env::is_valid_account_id;
 /// ```
 ///
 /// [`FromStr`]: std::str::FromStr
-#[crate::witgen]
 #[derive(
     Debug, Clone, PartialEq, PartialOrd, Ord, Eq, BorshSerialize, Serialize, Hash, BorshSchema,
 )]

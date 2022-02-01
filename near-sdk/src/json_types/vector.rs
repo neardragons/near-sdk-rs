@@ -1,8 +1,14 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+#[allow(dead_code)]
+mod types {
+  #[crate::witgen]
+  type Base64VecU8 = Vec<u8>;
+
+}
+
 /// Helper class to serialize/deserialize `Vec<u8>` to base64 string.
-#[crate::witgen]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 pub struct Base64VecU8(#[serde(with = "base64_bytes")] pub Vec<u8>);
 

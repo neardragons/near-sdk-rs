@@ -1,7 +1,6 @@
 use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use core::ops;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-
 /// Represents the amount of NEAR tokens in "gas units" which are used to fund transactions.
 #[derive(
     Default,
