@@ -8,13 +8,12 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[allow(dead_code)]
 mod types {
-  #[crate::witgen]
-  type U128 = String;
+    #[crate::witgen]
+    type U128 = String;
 }
 
 macro_rules! impl_str_type {
     ($iden: ident, $ty: tt) => {
-
         #[derive(Debug, Clone, Copy, PartialEq, BorshDeserialize, BorshSerialize)]
         pub struct $iden(pub $ty);
 

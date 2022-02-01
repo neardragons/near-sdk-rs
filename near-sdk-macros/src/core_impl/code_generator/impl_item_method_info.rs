@@ -2,7 +2,7 @@ use crate::core_impl::info_extractor::{
     AttrSigInfo, ImplItemMethodInfo, InputStructType, MethodType, SerializerType,
 };
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote};
+use quote::quote;
 use syn::{ItemFn, ReturnType, Signature};
 use witgen_macro_helper::write_to_file_default;
 

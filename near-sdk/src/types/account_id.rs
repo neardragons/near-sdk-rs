@@ -6,8 +6,8 @@ use std::fmt;
 use crate::env::is_valid_account_id;
 #[allow(dead_code)]
 mod a {
-  #[crate::witgen]
-  type AccountId = String;
+    #[crate::witgen]
+    type AccountId = String;
 }
 
 /// Account identifier. This is the human readable utf8 string which is used internally to index
