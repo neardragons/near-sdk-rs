@@ -8,6 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 macro_rules! impl_str_type {
     ($iden: ident, $ty: tt) => {
+
         #[derive(Debug, Clone, Copy, PartialEq, BorshDeserialize, BorshSerialize)]
         pub struct $iden(pub $ty);
 
@@ -49,7 +50,6 @@ macro_rules! impl_str_type {
         }
     };
 }
-
 impl_str_type!(U128, u128);
 impl_str_type!(U64, u64);
 impl_str_type!(I128, i128);

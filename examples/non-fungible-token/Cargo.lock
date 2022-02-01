@@ -1919,6 +1919,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "witgen_macro_helper 0.7.0 (git+https://github.com/bnjjj/witgen?rev=de915dede5f234575e0c7f8192a7264a9d110f31)",
 ]
 
 [[package]]
@@ -2963,9 +2964,9 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 
 [[package]]
 name = "syn"
-version = "1.0.67"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6498a9efc342871f91cc2d0d694c674368b4ceb40f62b65a7a08c3792935e702"
+checksum = "8a65b3f4ffa0092e9887669db0eae07941f023991ab58ea44da8fe8e2d511c6b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3782,18 +3783,47 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "witgen"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb8e4697f823d3778f4839cdb45db6a222befdc860c5d409e95a7be89305be75"
+checksum = "0f2b18206525741eeeec4ea89ec351d407353b587da4c8d0a00b6c65562af358"
 dependencies = [
  "witgen_macro",
 ]
 
 [[package]]
 name = "witgen_macro"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "265d152114a8c74d35a1ed9d9216e3bf886ff92079d1c26e3bec6fd976880bda"
+checksum = "5473d0f7e30fdef765282c727dbbf8646d343a488f690369845b707a71dd6cf6"
+dependencies = [
+ "anyhow",
+ "once_cell",
+ "proc-macro2",
+ "syn",
+ "witgen_macro_helper 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "witgen_macro_helper"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70743dd4139e7c700554ce81e269cc4ff6e58ffdb7b352c3e67378a88bddf06a"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "heck 0.4.0",
+ "hex",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "sha2",
+ "syn",
+]
+
+[[package]]
+name = "witgen_macro_helper"
+version = "0.7.0"
+source = "git+https://github.com/bnjjj/witgen?rev=de915dede5f234575e0c7f8192a7264a9d110f31#de915dede5f234575e0c7f8192a7264a9d110f31"
 dependencies = [
  "anyhow",
  "cargo_metadata",

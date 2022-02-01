@@ -2,8 +2,9 @@ use crate::core_impl::info_extractor::{
     AttrSigInfo, ImplItemMethodInfo, InputStructType, MethodType, SerializerType,
 };
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
-use syn::{ReturnType, Signature};
+use quote::{quote};
+use syn::{ItemFn, ReturnType, Signature};
+use witgen_macro_helper::write_to_file_default;
 
 impl ImplItemMethodInfo {
     /// Generate wrapper method for the given method of the contract.
@@ -161,6 +162,47 @@ impl ImplItemMethodInfo {
                 #value
             }
         });
+        if crate::is_witgen() {
+            let args = attr_signature_info.pat_type_list();
+
+            let attrs = if matches!(method_type, MethodType::View) {
+                quote! {
+                  #non_bindgen_attrs
+                  /// view
+                }
+            } else {
+                quote! {
+                  #non_bindgen_attrs
+                  /// change
+                }
+            };
+            let returns = match returns {
+                ReturnType::Default => quote! {#returns},
+                ReturnType::Type(_, _) => {
+                    if receiver.is_none() {
+                        quote! {}
+                    } else {
+                        quote! {#returns}
+                    }
+                }
+            };
+
+            let func = quote! {
+              #attrs
+              pub fn #ident(#args) #returns {}
+            };
+            // TODO: Better error handling
+            let func_res =
+                witgen_macro_helper::gen_wit_function(&syn::parse::<ItemFn>(func.into()).unwrap());
+            if let Ok(func) = &func_res {
+                let res = write_to_file_default(format!("{}\n", func));
+                if res.is_err() {
+                    eprintln!("Failed to Write \n {:#?}", func);
+                }
+            } else {
+                eprintln!("Failed to Write \n {:#?}", func_res);
+            }
+        }
         quote! {
             #non_bindgen_attrs
             #[cfg(target_arch = "wasm32")]
