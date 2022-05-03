@@ -17,6 +17,7 @@ use std::collections::HashMap;
 
 const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(10_000_000_000_000);
 const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
+const MIN_GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(100_000_000_000_000);
 
 const NO_DEPOSIT: Balance = 0;
 
@@ -415,6 +416,22 @@ impl NonFungibleTokenCore for NonFungibleToken {
         let sender_id = env::predecessor_account_id();
         let (old_owner, old_approvals) =
             self.internal_transfer(&sender_id, &receiver_id, &token_id, approval_id, memo);
+
+        //get the GAS attached to the call
+        let attached_gas = env::prepaid_gas();
+
+        /*
+            make sure that the attached gas is greater than the minimum GAS for NFT transfer call.
+            This is to ensure that the cross contract call to nft_on_transfer won't cause a prepaid GAS error.
+            If this happens, the event will be logged in internal_transfer but the actual transfer logic will be
+            reverted due to the panic. This will result in the databases thinking the NFT belongs to the wrong person.
+        */
+        assert!(
+            attached_gas >= MIN_GAS_FOR_NFT_TRANSFER_CALL,
+            "You cannot attach less than {:?} Gas to nft_transfer_call",
+            MIN_GAS_FOR_NFT_TRANSFER_CALL
+        );
+
         // Initiating receiver's call and the callback
         ext_receiver::nft_on_transfer(
             sender_id,
