@@ -15,8 +15,8 @@ use near_sdk::{
 };
 use std::collections::HashMap;
 
-const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(5_000_000_000_000);
-const GAS_FOR_FT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
+const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(10_000_000_000_000);
+const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
 
 const NO_DEPOSIT: Balance = 0;
 
@@ -423,7 +423,7 @@ impl NonFungibleTokenCore for NonFungibleToken {
             msg,
             receiver_id.clone(),
             NO_DEPOSIT,
-            env::prepaid_gas() - GAS_FOR_FT_TRANSFER_CALL,
+            env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
         )
         .then(ext_self::nft_resolve_transfer(
             old_owner,
